@@ -22,33 +22,27 @@ class XiangqiGame(Game):
     def getNextState(self, board, player, action):
         board = board.copy()
         x1, y1, x2, y2 = self.action2position(action)
-        # player == -1 时，action 依然是红方的，就会很糟糕
-        if player == -1:
-            board = np.rot90(board * -1, 2)
         p1 = board[y1, x1]
         p2 = board[y2, x2]
-        # print(board)
-        # print(x1, y1, x2, y2, board[y1, x1], board[y2, x2], player)
-        if p1 <= 0:
+        if p1 * player <= 0:
             raise ValueError("非法操作：当前玩家不能移动该棋子")
-        if p2 > 0:
+        if p1 * p2 > 0:
             raise ValueError("非法操作：不能吃自己的子")
-        valid = mapper[p1]['rule'](board, player, x1, y1)
+        valid = mapper[p1]['rule'](board, player, x1, y1, np.ones_like(board))
         if not valid[y2, x2]:
             raise ValueError("非法操作：走子规则不合法")
         board[y2, x2] = p1
         board[y1, x1] = 0
-        if player == -1:
-            board = np.rot90(board * -1, 2)
         return board, -player
 
     def getValidMoves(self, board, player):
         valid = np.zeros((10, 9, 10, 9), dtype=bool)
+        no_eat_self = (board * player) <= 0
         for y in range(10):
             for x in range(9):
                 tp = board[y, x]
-                if tp > 0:
-                    valid[y, x, :, :] = mapper[tp]['rule'](board, player, x, y)
+                if tp * player > 0:
+                    valid[y, x, :, :] = mapper[tp]['rule'](board, player, x, y, no_eat_self)
         return valid.flatten()
 
     def getGameEnded(self, board, player):

@@ -20,14 +20,15 @@ class Coach():
     in Game and NeuralNet. args are specified in main.py.
     """
 
-    def __init__(self, game, nnet, args):
+    def __init__(self, game, nnet, args, max_episode, search_limit):
         self.game = game
         self.nnet = nnet
         self.pnet = self.nnet.__class__(self.game)  # the competitor network
         self.args = args
-        self.mcts = MCTS(self.game, self.nnet, self.args)
+        self.mcts = MCTS(self.game, self.nnet, self.args, search_limit)
         self.trainExamplesHistory = []  # history of examples from args.numItersForTrainExamplesHistory latest iterations
         self.skipFirstSelfPlay = False  # can be overriden in loadTrainExamples()
+        self.max_episode = max_episode
 
     def executeEpisode(self):
         """
@@ -49,9 +50,12 @@ class Coach():
         board = self.game.getInitBoard()
         self.curPlayer = 1
         episodeStep = 0
-
         while True:
             episodeStep += 1
+            # 强制结束局面
+            if episodeStep >= self.max_episode:
+                print(f"[Draw] Max steps reached: {episodeStep}")
+                return [(x[0], x[2], 1e-4) for x in trainExamples]  # 视为和棋
             canonicalBoard = self.game.getCanonicalForm(board, self.curPlayer)
             temp = int(episodeStep < self.args.tempThreshold)
 
@@ -61,6 +65,7 @@ class Coach():
                 trainExamples.append([b, self.curPlayer, p, None])
 
             action = np.random.choice(len(pi), p=pi)
+            # assert not((board == canonicalBoard).all() or (np.rot90(board * -1, 2) == canonicalBoard).all())
             board, self.curPlayer = self.game.getNextState(board, self.curPlayer, action)
 
             r = self.game.getGameEnded(board, self.curPlayer)

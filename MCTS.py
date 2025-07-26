@@ -13,7 +13,7 @@ class MCTS():
     This class handles the MCTS tree.
     """
 
-    def __init__(self, game, nnet, args):
+    def __init__(self, game, nnet, args, search_limit=200):
         self.game = game
         self.nnet = nnet
         self.args = args
@@ -24,6 +24,7 @@ class MCTS():
 
         self.Es = {}  # stores game.getGameEnded ended for board s
         self.Vs = {}  # stores game.getValidMoves for board s
+        self.search_limit = search_limit
 
     def getActionProb(self, canonicalBoard, temp=1):
         """
@@ -35,7 +36,7 @@ class MCTS():
                    proportional to Nsa[(s,a)]**(1./temp)
         """
         for i in range(self.args.numMCTSSims):
-            self.search(canonicalBoard)
+            self.search(canonicalBoard, self.search_limit)
 
         s = self.game.stringRepresentation(canonicalBoard)
         counts = [self.Nsa[(s, a)] if (s, a) in self.Nsa else 0 for a in range(self.game.getActionSize())]
@@ -52,7 +53,7 @@ class MCTS():
         probs = [x / counts_sum for x in counts]
         return probs
 
-    def search(self, canonicalBoard):
+    def search(self, canonicalBoard, max_search=200):
         """
         This function performs one iteration of MCTS. It is recursively called
         till a leaf node is found. The action chosen at each node is one that
@@ -71,6 +72,8 @@ class MCTS():
         Returns:
             v: the negative of the value of the current canonicalBoard
         """
+        if max_search <= 0:
+            return 0
 
         s = self.game.stringRepresentation(canonicalBoard)
 
@@ -122,7 +125,7 @@ class MCTS():
         next_s, next_player = self.game.getNextState(canonicalBoard, 1, a)
         next_s = self.game.getCanonicalForm(next_s, next_player)
 
-        v = self.search(next_s)
+        v = self.search(next_s, max_search-1)
 
         if (s, a) in self.Qsa:
             self.Qsa[(s, a)] = (self.Nsa[(s, a)] * self.Qsa[(s, a)] + v) / (self.Nsa[(s, a)] + 1)
