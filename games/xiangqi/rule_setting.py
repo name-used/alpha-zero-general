@@ -1,5 +1,5 @@
 import numpy as np
-from piece import an, ak, a_s, ax, am, ac, ap, ab
+from .piece import an, ak, a_s, ax, am, ac, ap, ab
 
 mapper = {tp: {'name': name, 'key': key, 'rule': rule} for tp, name, key, rule in zip(
     [0, 1, 2, 3, 4, 5, 6, 7, -1, -2, -3, -4, -5, -6, -7],

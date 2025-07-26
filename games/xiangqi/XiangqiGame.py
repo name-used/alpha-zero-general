@@ -1,5 +1,5 @@
 import numpy as np
-from rule_setting import default_board_state, mapper
+from .rule_setting import default_board_state, mapper
 from Game import Game
 
 
@@ -16,74 +16,74 @@ class XiangqiGame(Game):
     def getActionSize(self):
         return 8100
 
+    def getInputChannels(self):
+        return 15
+
     def getNextState(self, board, player, action):
         board = board.copy()
-        x1, y1, x2, y2 = action
+        x1, y1, x2, y2 = self.action2position(action)
+        # player == -1 时，action 依然是红方的，就会很糟糕
+        if player == -1:
+            board = np.rot90(board * -1, 2)
         p1 = board[y1, x1]
         p2 = board[y2, x2]
-        if p1 * player <= 0:
+        # print(board)
+        # print(x1, y1, x2, y2, board[y1, x1], board[y2, x2], player)
+        if p1 <= 0:
             raise ValueError("非法操作：当前玩家不能移动该棋子")
-        if p1 * p2 > 0:
+        if p2 > 0:
             raise ValueError("非法操作：不能吃自己的子")
+        valid = mapper[p1]['rule'](board, player, x1, y1)
+        if not valid[y2, x2]:
+            raise ValueError("非法操作：走子规则不合法")
         board[y2, x2] = p1
         board[y1, x1] = 0
+        if player == -1:
+            board = np.rot90(board * -1, 2)
         return board, -player
 
     def getValidMoves(self, board, player):
         valid = np.zeros((10, 9, 10, 9), dtype=bool)
-        no_eat_self = (board * player) <= 0
         for y in range(10):
             for x in range(9):
                 tp = board[y, x]
-                valid[y, x, :, :] = mapper[tp]['rule'](board, player, x, y, no_eat_self)
-
-        for r1 in range(10):
-            for c1 in range(9):
-                piece = board[r1][c1]
-                if piece * player <= 0:
-                    continue
-                for r2 in range(BOARD_ROWS):
-                    for c2 in range(BOARD_COLS):
-                        if self.is_legal_move(board, player, (r1, c1), (r2, c2)):
-                            a = self.encode_action((r1, c1), (r2, c2))
-                            valids[a] = 1
-        return valids
+                if tp > 0:
+                    valid[y, x, :, :] = mapper[tp]['rule'](board, player, x, y)
+        return valid.flatten()
 
     def getGameEnded(self, board, player):
-        red_general = np.any(board == RED)
-        black_general = np.any(board == BLACK)
+        red_general = (board == 1).any()
+        black_general = (board == -1).any()
         if red_general and black_general:
             return 0  # 未结束
         if red_general:
-            return 1 if player == RED else -1
+            return 1 if player == 1 else -1
         if black_general:
-            return 1 if player == BLACK else -1
-        return 1e-4  # 平局或不明状态
+            return 1 if player == -1 else -1
+        raise 1111111111  # 未知状态
 
     def getCanonicalForm(self, board, player):
-        return board * player
+        if player > 0: return board
+        return np.rot90(board * -1, 2)
 
     def stringRepresentation(self, board):
         return board.tostring()
 
-    def is_legal_move(self, board, player, start, end):
-        r1, c1 = start
-        r2, c2 = end
-        piece = board[r1][c1]
-        target = board[r2][c2]
-        if target * player > 0:
-            return False  # 不能吃自己
-        # 示例：只允许上下左右移动一步（将、卒）
-        dr, dc = abs(r2 - r1), abs(c2 - c1)
-        if dr + dc != 1:
-            return False
-        return True
+    def action2position(self, action):
+        xy1, xy2 = action // 90, action % 90
+        y1, x1 = xy1 // 9, xy1 % 9
+        y2, x2 = xy2 // 9, xy2 % 9
+        return x1, y1, x2, y2
 
-    def encode_action(self, start, end):
-        s = start[0] * BOARD_COLS + start[1]
-        e = end[0] * BOARD_COLS + end[1]
-        return s * BOARD_ROWS * BOARD_COLS + e
-
-    def decode_action(self, action):
-        s_flat, e_flat = divmod(action, BOARD_ROWS * BOARD_COLS)
-        return (s_flat // BOARD_COLS, s_flat % BOARD_COLS), (e_flat // BOARD_COLS, e_flat % BOARD_COLS)
+    def getSymmetries(self, board, pi):
+        return [(board, pi)]
+        # 原样
+        symmetries = [(board, pi)]
+        # 镜像棋盘
+        flipped_board = np.fliplr(board)
+        # pi shape: (10, 9, 10, 9)
+        pi_board = np.asarray(pi).reshape((10, 9, 10, 9))
+        # 镜像：x1, x2 对称映射 → flip axis=1 和 axis=3
+        flipped_pi_board = np.flip(pi_board, axis=(1, 3))
+        symmetries.append((flipped_board, flipped_pi_board.flatten().tolist()))
+        return symmetries
