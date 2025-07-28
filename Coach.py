@@ -66,7 +66,7 @@ class Coach():
 
             action = np.random.choice(len(pi), p=pi)
             # assert not((board == canonicalBoard).all() or (np.rot90(board * -1, 2) == canonicalBoard).all())
-            board, self.curPlayer = self.game.getNextState(board, self.curPlayer, action)
+            board, self.curPlayer = self.game.getNextState(board, action)
 
             r = self.game.getGameEnded(board, self.curPlayer)
 
