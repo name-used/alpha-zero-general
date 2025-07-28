@@ -21,11 +21,11 @@ class Arena:
             action = self.player1(state)
             state.do_action(action)
             if self.ui: self.ui.flush()
-            time.sleep(1)
+            if self.ui: time.sleep(1)
             action = self.player2(state)
             state.do_action(action)
             if self.ui: self.ui.flush()
-            time.sleep(1)
+            if self.ui: time.sleep(1)
         if self.ui: self.ui.end()
         return state.end_state()
 

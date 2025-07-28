@@ -34,22 +34,25 @@ class MCTS:
                    proportional to Nsa[(s,a)]**(1./temp)
         """
         for i in range(self.args.numMCTSSims):
-            self.search(state, self.args.search_limit)
+            self.search(state.clone(), self.args.search_limit)
 
         s = state.keystr()
         counts = [self.Nsa[(s, a)] if (s, a) in self.Nsa else 0 for a in range(32400)]
+        counts = np.asarray(counts) + state.getValidMoves() * 1e-19
 
         if temperature == 0:
-            bestAs = np.array(np.argwhere(counts == np.max(counts))).flatten()
-            bestA = np.random.choice(bestAs)
-            probs = [0] * len(counts)
-            probs[bestA] = 1
+            best_action = counts.argmax()
+            probs = np.zeros_like(counts)
+            probs[best_action] = 1.0
             return probs
 
-        counts = [x ** (1. / temperature) for x in counts]
-        counts_sum = float(sum(counts))
-        probs = [x / counts_sum for x in counts]
-        return probs
+        counts = np.asarray(counts) ** (1. / temperature)
+        assert counts.max() > counts.min() >= 0
+        return counts / counts.sum()
+        # counts = [x ** (1. / temperature) for x in counts]
+        # counts_sum = float(sum(counts))
+        # probs = [x / counts_sum for x in counts]
+        # return probs
 
     def search(self, state: GameState, max_search=200):
         if max_search <= 0:
@@ -70,20 +73,11 @@ class MCTS:
                 self.Ps[s], v = self.model.predict(state)
                 self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
             else:
-                self.Ps[s] = np.asarray([state.clone().do_action().score() * v for a, v in enumerate(valids)])
-                v = np.mean(self.Ps[s])
-
-            sum_Ps_s = np.sum(self.Ps[s])
-            if sum_Ps_s > 0:
-                self.Ps[s] /= sum_Ps_s  # renormalize
-            else:
-                # if all valid moves were masked make all valid moves equally probable
-                # NB! All valid moves may be masked if either your NNet architecture is insufficient or you've get overfitting or something else.
-                # If you have got dozens or hundreds of these messages you should pay attention to your NNet and/or training process.   
-                log.error("All valid moves were masked, doing a workaround.")
-                self.Ps[s] = self.Ps[s] + valids
-                self.Ps[s] /= np.sum(self.Ps[s])
-
+                # score 是 [-1, 1]，概率是 [0, 1]
+                ps = np.asarray([(state.clone().do_action(a).score() + 1.001) ** 2 if v else 0 for a, v in enumerate(valids)])
+                ps = ps / ps.sum()
+                v = np.mean(ps)
+                self.Ps[s] = ps
             self.Vs[s] = valids
             self.Ns[s] = 0
             return v
@@ -104,6 +98,9 @@ class MCTS:
                 cur_best = u
                 best_act = a
 
+        if best_act == -1:
+            # 没有合法动作
+            raise 'no valid method'
         a = best_act
         state.do_action(a)
 

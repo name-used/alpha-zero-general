@@ -30,10 +30,10 @@ class Coach:
             # 这个过程的作用是“生成数据集”，为对弈环节形成的每个局面都进行一次评分
             log.info(f'Starting Iter #{i} ...')
             iterationTrainExamples = deque([], maxlen=self.args.history_limit)
-            for _ in tqdm(range(self.args.self_play_times), desc="Self Play"):
-                # mcts = MCTS(self.model, self.mcts_args)  # reset search tree
-                mcts = MCTS(None, self.mcts_args)  # reset search tree
+            for time in range(self.args.self_play_times):
+                mcts = MCTS(None if i <= self.args.hard_score_epoch else self.model, self.mcts_args)  # reset search tree
                 iterationTrainExamples += self.executeEpisode(mcts)
+                print(f' -- {time + 1} end')
 
             # 自对弈结果管控 + 制作数据集
             self.trainExamplesHistory.append(iterationTrainExamples)
@@ -77,6 +77,7 @@ class Coach:
         episodeStep = 0
         while True:
             episodeStep += 1
+            print(episodeStep, end=',')
             temperature = int(episodeStep < self.args.explore_num)
 
             pi = mcts.getActionProb(state, temperature=temperature)
