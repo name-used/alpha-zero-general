@@ -19,13 +19,6 @@ class Game():
         """
         pass
 
-    def getBoardSize(self):
-        """
-        Returns:
-            (x,y): a tuple of board dimensions
-        """
-        pass
-
     def getActionSize(self):
         """
         Returns:
@@ -33,7 +26,7 @@ class Game():
         """
         pass
 
-    def getNextState(self, board, player, action):
+    def getNextState(self, board, action):
         """
         Input:
             board: current board

@@ -115,6 +115,7 @@ def ab(board, player, x, y):
     # 行动表
     for p, q in mk:
         if q == 1: continue
+        if y >= 5 and q != -1: continue
         nx = x + p
         ny = y + q
         if 0 <= nx < 9 and 0 <= ny < 10 and board[ny, nx].item() <= 0:
