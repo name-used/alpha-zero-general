@@ -32,6 +32,7 @@ class GameState:
         self.board = default_board.copy()
         self.red_rations = 120
         self.black_rations = 100
+        self.red_stop_limit = 6
         self.red_alert = 4
         self.black_alert = 4
         self.player_turn = 1
@@ -67,25 +68,45 @@ class GameState:
         else: self.black_alert = a
         if self.player_turn == 1: self.red_rations += a_r[a]
         else: self.black_alert += a_r[a]
+        return self
 
-    def if_end(self):
-        return abs(self.score()) > 9000
+    def getValidMoves(self):
+        valid = np.zeros((10, 9, 10, 9), dtype=bool)
+        for y in range(10):
+            for x in range(9):
+                tp = self.board[y, x]
+                if tp * self.player_turn > 0:
+                    valid[y, x, :, :] = mapper[tp]['rule'](self.board, self.player_turn, x, y)
+        return valid.flatten()
+
+    def end_state(self):
+        # 红棋战败规则：要么军粮耗尽无法再停招，要么老将被吃
+        if self.red_stop_limit == 0 and self.red_rations < 2 or 1 not in self.board: return -1
+        # 黑棋战败规则：老将被吃
+        if -1 not in self.board: return 1
+        # 其余状态：未结束
+        return 0
+
+    def keystr(self):
+        board_str = self.board.tobytes()  # 快速压缩成稳定字节串
+        key_parts = [
+            board_str,
+            str(self.red_rations),
+            str(self.black_rations),
+            str(self.red_stop_limit),
+            str(self.red_alert),
+            str(self.black_alert),
+            str(self.player_turn)
+        ]
+        return '|'.join(key_parts)
 
     def score(self):
         # 红方视角的评分
         # 如果把老将吃掉了，就返回胜负评分
-        if 1 not in self.board: return -9999
-        if -1 not in self.board: return 9999
+        if 1 not in self.board: return -1.0
+        if -1 not in self.board: return 1.0
         # 否则按子力价值 * 剩余军粮评分
         red_score = s_t[self.board[self.board > 0]]
         black_score = s_t[self.board[self.board < 0] * -1]
-        return red_score * self.red_rations - black_score * self.black_rations
-
-    def getValidMoves(self, state: GameState, player):
-        valid = np.zeros((10, 9, 10, 9), dtype=bool)
-        for y in range(10):
-            for x in range(9):
-                tp = board[y, x]
-                if tp > 0:
-                    valid[y, x, :, :] = mapper[tp]['rule'](board, player, x, y)
-        return valid.flatten()
+        score = red_score * self.red_rations - black_score * self.black_rations
+        return score / 10_000
