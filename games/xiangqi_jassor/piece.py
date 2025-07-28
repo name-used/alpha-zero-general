@@ -12,11 +12,12 @@ def an(board, player, x, y):
 def ak(board, player, x, y):
     legal = np.zeros_like(board, dtype=bool)
     # 行动表
+    ly1, ly2 = (7, 10) if player > 0 else (0, 3)
     for p, q in mk:
         nx = x + p
         ny = y + q
         # 九宫格限制
-        if 3 <= nx < 6 and 7 <= ny < 10 and board[ny, nx].item() <= 0:
+        if 3 <= nx < 6 and ly1 <= ny < ly2 and board[ny, nx].item() * player <= 0:
             legal[ny, nx] = True
     # 特殊吃子，对脸吃王
     line = board[:, x]
@@ -32,10 +33,11 @@ def ak(board, player, x, y):
 def a_s(board, player, x, y):
     legal = np.zeros_like(board, dtype=bool)
     # 行动表
+    ly1, ly2 = (7, 10) if player > 0 else (0, 3)
     for p, q in ms:
         nx = x + p
         ny = y + q
-        if 3 <= nx < 6 and 7 <= ny < 10 and board[ny, nx].item() <= 0:
+        if 3 <= nx < 6 and ly1 <= ny < ly2 and board[ny, nx].item() * player <= 0:
             legal[ny, nx] = True
     return legal
 
@@ -43,14 +45,15 @@ def a_s(board, player, x, y):
 def ax(board, player, x, y):
     legal = np.zeros_like(board, dtype=bool)
     # 行动表
+    ly1, ly2 = (5, 10) if player > 0 else (0, 5)
     for p, q in ms:
         nx = x + p * 2
         ny = y + q * 2
         # 塞象眼
-        if 0 <= nx < 9 and 6 <= ny < 10:
+        if 0 <= nx < 9 and ly1 <= ny < ly2:
             tx = x + p
             ty = y + q
-            if not board[ty, tx].item() and board[ny, nx].item() <= 0:
+            if not board[ty, tx].item() and board[ny, nx].item() * player <= 0:
                 legal[ny, nx] = True
     return legal
 
@@ -65,7 +68,7 @@ def am(board, player, x, y):
         if 0 <= nx < 9 and 0 <= ny < 10:
             tx = x + int(p / 2)
             ty = y + int(q / 2)
-            if not board[ty, tx].item() and board[ny, nx].item() <= 0:
+            if not board[ty, tx].item() and board[ny, nx].item() * player <= 0:
                 legal[ny, nx] = True
     return legal
 
@@ -77,7 +80,7 @@ def ac(board, player, x, y):
         for r in range(1, 10):
             nx = x + p * r
             ny = y + q * r
-            if 0 <= nx < 9 and 0 <= ny < 10 and board[ny, nx].item() <= 0:
+            if 0 <= nx < 9 and 0 <= ny < 10 and board[ny, nx].item() * player <= 0:
                 legal[ny, nx] = True
                 if board[ny, nx].item():
                     break
@@ -102,7 +105,7 @@ def ap(board, player, x, y):
                         legal[ny, nx] = True
                 else:
                     if board[ny, nx].item():
-                        if board[ny, nx].item() <= 0:
+                        if board[ny, nx].item() * player <= 0:
                             legal[ny, nx] = True
                         break
             else:
@@ -114,10 +117,10 @@ def ab(board, player, x, y):
     legal = np.zeros_like(board, dtype=bool)
     # 行动表
     for p, q in mk:
-        if q == 1: continue
-        if y >= 5 and q != -1: continue
+        if q * player == 1: continue
+        if (y-5) * player > 0 and q == 0: continue
         nx = x + p
         ny = y + q
-        if 0 <= nx < 9 and 0 <= ny < 10 and board[ny, nx].item() <= 0:
+        if 0 <= nx < 9 and 0 <= ny < 10 and board[ny, nx].item() * player <= 0:
             legal[ny, nx] = True
     return legal
