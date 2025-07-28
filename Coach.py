@@ -54,8 +54,11 @@ class Coach:
             nmcts = MCTS(self.model, self.mcts_args)
 
             log.info('PITTING AGAINST PREVIOUS VERSION')
-            arena = Arena(lambda x: np.argmax(pmcts.getActionProb(x, temp=0)),
-                          lambda x: np.argmax(nmcts.getActionProb(x, temp=0)), self.game)
+            arena = Arena(
+                lambda x: np.argmax(nmcts.getActionProb(x, temperature=0)),
+                lambda x: np.argmax(pmcts.getActionProb(x, temperature=0)),
+                display=False
+            )
             pwins, nwins, draws = arena.playGames(self.arena_args.compare_times)
 
             log.info('NEW/PREV WINS : %d / %d ; DRAWS : %d' % (nwins, pwins, draws))
